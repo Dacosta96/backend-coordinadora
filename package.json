@@ -1,0 +1,42 @@
+{
+    "name": "backend",
+    "version": "1.0.0",
+    "description": "backend",
+    "engines": {
+        "node": "18.*"
+    },
+    "main": "src/app.js",
+    "scripts": {
+        "start": "node src/app.js",
+        "dev": "nodemon --exec \"npm run lint && node src/app.js\"",
+        "lint": "eslint \"./src/**/*.js\""
+    },
+    "license": "ISC",
+    "devDependencies": {
+        "eslint": "^7.29.0",
+        "eslint-config-airbnb": "^18.2.1",
+        "eslint-config-node": "^4.1.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-import": "^2.25.4",
+        "eslint-plugin-jsx-a11y": "^6.4.1",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-prettier": "^3.4.0",
+        "nodemon": "^2.0.6",
+        "prettier": "^2.3.2"
+    },
+    "dependencies": {
+        "chalk": "^3.0.0",
+        "cors": "^2.8.5",
+        "dotenv": "^10.0.0",
+        "express": "^4.17.1",
+        "express-form-data": "^2.0.16",
+        "express-validator": "^6.11.1",
+        "joi": "^17.13.3",
+        "morgan": "^1.10.0",
+        "mysql2": "^3.14.0",
+        "node": "^16.14.2",
+        "node-absolute-path": "^1.0.6",
+        "swagger-jsdoc": "^6.2.8",
+        "swagger-ui-express": "^5.0.1"
+    }
+}
