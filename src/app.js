@@ -9,7 +9,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const chalk = require('chalk');
 const swaggerSpec = require('./docs/swagger-config');
-const { logErrors, errorHandler, notFound } = require('./utils/middlewares');
+const { errorHandler, notFound } = require('./utils/middlewares');
 const connectDB = require('./utils/database');
 
 // require('./utils/jobs');
@@ -37,7 +37,6 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api', require('./routes'));
 
 // error handlers
-app.use(logErrors);
 app.use(errorHandler);
 app.use(notFound);
 

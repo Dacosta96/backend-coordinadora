@@ -1,15 +1,12 @@
 const { validationResult } = require('express-validator');
 
-const logErrors = (err, req, res, next) => {
-    if (err.stack) console.log(err.stack);
-    else console.log(err);
-    next(err);
-};
-
 const errorHandler = (err, req, res, next) => {
-    res.status(500).json({
-        message: 'Custom error response',
-        error: err.message,
+    const statusCode = err.status || 500;
+    const message = err.message || 'Custom Internal Server Error';
+
+    res.status(statusCode).json({
+        success: false,
+        message,
     });
 };
 
@@ -35,7 +32,6 @@ const validateBody = (schema) => (req, res, next) => {
 };
 
 module.exports = {
-    logErrors,
     errorHandler,
     notFound,
     validateParams,

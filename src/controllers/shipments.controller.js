@@ -1,12 +1,12 @@
 const express = require('express');
 
-const UsersService = require('../services/users.service');
 const { validateBody } = require('../utils/middlewares');
 const { createShipmentSchema } = require('../validations/shipments.validation');
+const ShipmentsService = require('../services/shipments.service');
 
 const router = express.Router();
 
-const service = new UsersService();
+const service = new ShipmentsService();
 
 /**
  * @swagger
@@ -21,15 +21,15 @@ const service = new UsersService();
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               userId:
  *                 type: integer
  *               weight:
  *                 type: number
  *               dimensions:
  *                 type: string
- *               product_type:
+ *               productType:
  *                 type: string
- *               destination_address:
+ *               destinationAddress:
  *                 type: string
  *     responses:
  *       201:
@@ -39,7 +39,7 @@ router.post('/', validateBody(createShipmentSchema), async (req, res, next) => {
     try {
         console.log('req.body:', req.body);
         const db = req.app.locals.db;
-        const shipment = await req.app.locals.services.shipment.create(db, req.body);
+        const shipment = await service.createShipment(db, req.body);
         res.status(201).json(shipment);
     } catch (err) {
         next(err);
@@ -59,7 +59,7 @@ router.post('/', validateBody(createShipmentSchema), async (req, res, next) => {
 router.get('/', async (req, res, next) => {
     try {
         const db = req.app.locals.db;
-        const shipments = await req.app.locals.services.shipment.findAll(db);
+        const shipments = await service.findAllShipments(db);
         res.status(200).json(shipments);
     } catch (err) {
         next(err);
@@ -85,7 +85,7 @@ router.get('/', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
     try {
         const db = req.app.locals.db;
-        const shipment = await req.app.locals.services.shipment.findById(db, Number(req.params.id));
+        const shipment = await service.findShipmentById(db, Number(req.params.id));
         res.status(200).json(shipment);
     } catch (err) {
         next(err);
@@ -115,9 +115,9 @@ router.get('/:id', async (req, res, next) => {
  *                 type: number
  *               dimensions:
  *                 type: string
- *               product_type:
+ *               productType:
  *                 type: string
- *               destination_address:
+ *               destinationAddress:
  *                 type: string
  *               status:
  *                 type: string
@@ -128,7 +128,7 @@ router.get('/:id', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
     try {
         const db = req.app.locals.db;
-        const shipment = await req.app.locals.services.shipment.update(db, Number(req.params.id), req.body);
+        const shipment = await service.updateShipment(db, Number(req.params.id), req.body);
         res.status(200).json(shipment);
     } catch (err) {
         next(err);
@@ -154,7 +154,7 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
     try {
         const db = req.app.locals.db;
-        await req.app.locals.services.shipment.remove(db, Number(req.params.id));
+        await service.deleteShipment(db, Number(req.params.id));
         res.status(204).send();
     } catch (err) {
         next(err);
