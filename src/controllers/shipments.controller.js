@@ -3,6 +3,7 @@ const express = require('express');
 const { validateBody } = require('../utils/middlewares');
 const { createShipmentSchema } = require('../validations/shipments.validation');
 const ShipmentsService = require('../services/shipments.service');
+const cacheMiddleware = require('../utils/redis/cache-middleware');
 
 const router = express.Router();
 
@@ -112,6 +113,36 @@ router.get('/:id', async (req, res, next) => {
 
 /**
  * @swagger
+ * /shipments/{id}/details:
+ *   get:
+ *     summary: Obtiene un envío por ID con detalles
+ *     tags: [Shipments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Detalle del envío con detalles
+ */
+router.get(
+    '/:id/details',
+    cacheMiddleware((req) => `shipment-status:${req.params.id}`, 120),
+    async (req, res, next) => {
+        try {
+            const db = req.app.locals.db;
+            const shipment = await service.findShipmentByIdDetails(db, Number(req.params.id));
+            res.status(200).json(shipment);
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+/**
+ * @swagger
  * /shipments/{id}:
  *   put:
  *     summary: Actualiza un envío existente
@@ -147,6 +178,32 @@ router.put('/:id', async (req, res, next) => {
     try {
         const db = req.app.locals.db;
         const shipment = await service.updateShipment(db, Number(req.params.id), req.body);
+        res.status(200).json(shipment);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ * /shipments/{id}/mark_delivered:
+ *   put:
+ *     summary: Marca un envío como entregado
+ *     tags: [Shipments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Envío marcado como entregado
+ */
+router.put('/:id/mark_delivered', async (req, res, next) => {
+    try {
+        const db = req.app.locals.db;
+        const shipment = await service.markShipmentAsDelivered(db, Number(req.params.id));
         res.status(200).json(shipment);
     } catch (err) {
         next(err);

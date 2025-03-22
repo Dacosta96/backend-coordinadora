@@ -128,6 +128,57 @@ class ShipmentsService {
         return `COORD_${shortId}`;
         // return shortId;
     }
+
+    async markShipmentAsDelivered(db, id) {
+        try {
+            const shipment = await this.findShipmentById(db, id);
+            if (!shipment) {
+                const error = new Error(`Shipment with ID ${id} not found.`);
+                error.status = 404;
+                throw error;
+            }
+            if (shipment?.current_status === 'IN_TRANSIT') {
+                await db.query(
+                    `UPDATE shipments
+                     SET current_status = ?
+                     WHERE id = ?`,
+                    ['DELIVERED', id]
+                );
+                return await this.findShipmentById(db, id);
+            }
+            const error = new Error(`Shipment with ID ${id} is not in transit.`);
+            error.status = 400;
+            throw error;
+        } catch (err) {
+            console.log('err:', err?.message);
+            throw err;
+        }
+    }
+
+    async findShipmentByIdDetails(db, id) {
+        try {
+            console.log('consultando shipment con detalles:', id);
+            // fake timeout to simulate slow response
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+
+            const shipment = await this.findShipmentById(db, id);
+            if (!shipment) {
+                const error = new Error(`Shipment with ID ${id} not found.`);
+                error.status = 404;
+                throw error;
+            }
+            const [rows] = await db.query('SELECT * FROM shipment_status_history WHERE shipment_id = ?', [id]);
+            shipment.shipmentStatusHistory = camelcaseKeys(rows, { deep: true });
+
+            const [rows2] = await db.query('SELECT * FROM shipment_metrics WHERE shipment_id = ?', [id]);
+            shipment.shipmentMetrics = camelcaseKeys(rows2, { deep: true });
+
+            return shipment;
+        } catch (err) {
+            console.log('err:', err?.message);
+            throw err;
+        }
+    }
 }
 
 module.exports = ShipmentsService;
