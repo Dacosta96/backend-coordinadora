@@ -8,11 +8,11 @@ const swaggerUi = require('swagger-ui-express');
 const cors = require('cors');
 const morgan = require('morgan');
 const chalk = require('chalk');
+const { clerkMiddleware } = require('@clerk/express');
 const swaggerSpec = require('./docs/swagger-config');
-const { errorHandler, notFound } = require('./utils/middlewares');
+const { errorHandler, notFound, unauthorizedHandler } = require('./utils/middlewares');
 const connectDB = require('./utils/database');
 
-// require('./utils/jobs');
 console.log('starting...');
 // creating the server
 
@@ -28,15 +28,18 @@ app.use(
 // port the APP
 const PORT = process.env.PORT || 4000;
 
-console.log('swaggerSpec:', swaggerSpec.paths);
-
 // docs
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// add clerk middleware
+app.use(clerkMiddleware());
 
 // import routes
 app.use('/api', require('./routes'));
 
 // error handlers
+app.get('/api/unauthorized', unauthorizedHandler);
+app.use(errorHandler);
 app.use(errorHandler);
 app.use(notFound);
 

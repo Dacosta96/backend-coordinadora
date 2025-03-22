@@ -1,5 +1,6 @@
 const express = require('express');
 
+const { requireAuth } = require('@clerk/express');
 const { validateBody } = require('../utils/middlewares');
 const { createShipmentSchema } = require('../validations/shipments.validation');
 const ShipmentsService = require('../services/shipments.service');

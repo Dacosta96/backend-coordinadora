@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const { requireAuth } = require('@clerk/express');
 
 const errorHandler = (err, req, res, next) => {
     const statusCode = err.status || 500;
@@ -31,9 +32,17 @@ const validateBody = (schema) => (req, res, next) => {
     next();
 };
 
+const requireApiAuth = () => requireAuth({ signInUrl: '/api/unauthorized' });
+
+const unauthorizedHandler = (req, res) => {
+    res.status(401).json({ message: 'Unauthorized' });
+};
+
 module.exports = {
     errorHandler,
     notFound,
     validateParams,
     validateBody,
+    requireApiAuth,
+    unauthorizedHandler,
 };
