@@ -1,5 +1,7 @@
 const express = require('express');
 const UsersService = require('../services/users.service');
+const { validateBody } = require('../utils/middlewares');
+const { createUserSchema } = require('../validations/users.validation');
 
 const router = express.Router();
 
@@ -28,6 +30,89 @@ router.get('/ping', async (req, res, next) => {
         const db = req.app.locals.db;
         const data = await service.ping(db);
         res.status(200).json(data);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   get:
+ *     summary: Obtiene un usuario por ID
+ *     tags: [Usuarios]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Detalle del usuario
+ */
+router.get('/:id', async (req, res, next) => {
+    try {
+        const db = req.app.locals.db;
+        const shipment = await service.findUserById(db, Number(req.params.id));
+        res.status(200).json(shipment);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Crea un nuevo usuario
+ *     tags: [Usuarios]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *     responses:
+ *       201:
+ *         description: Usuario creado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 clerkId:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ */
+router.post('/', validateBody(createUserSchema), async (req, res, next) => {
+    try {
+        const db = req.app.locals.db;
+        const data = await service.create(db, req.body);
+        res.status(201).json(data);
     } catch (err) {
         next(err);
     }

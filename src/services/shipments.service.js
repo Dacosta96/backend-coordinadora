@@ -1,4 +1,7 @@
 const camelcaseKeys = require('@lafourche/camelcase-keys');
+const { v4: uuidv4 } = require('uuid');
+const { validateAddress } = require('../utils/google-util');
+const { sendEmailTemplateHtml } = require('../utils/aws-util');
 
 class ShipmentsService {
     constructor() {
@@ -8,11 +11,56 @@ class ShipmentsService {
     async createShipment(db, shipmentData) {
         try {
             const { userId, weight, dimensions, productType, destinationAddress } = shipmentData;
+
+            // validar si la dirección de destino es válida
+            const responseAddress = await validateAddress(destinationAddress);
+
+            if (!responseAddress?.isValid) {
+                const error = new Error('Invalid destination address');
+                error.status = 400;
+                throw error;
+            }
+
+            const googleMapsAddress = responseAddress?.data?.result?.address || {};
+
+            // generar id de envío
+            const trackingId = this.generateTrackingNumber();
+            console.log('trackingId:', trackingId);
+
             const [result] = await db.query(
-                'INSERT INTO shipments (user_id, weight, dimensions, product_type, destination_address) VALUES (?, ?, ?, ?, ?)',
-                [userId, weight, dimensions, productType, destinationAddress]
+                `INSERT INTO shipments (tracking_id, user_id, weight, dimensions, product_type, destination_address, google_map_address)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    trackingId,
+                    userId,
+                    weight,
+                    dimensions,
+                    productType,
+                    JSON.stringify(destinationAddress),
+                    JSON.stringify(googleMapsAddress),
+                ]
             );
-            return { id: result.insertId, ...shipmentData };
+
+            const inserted = await this.findShipmentById(db, result.insertId);
+
+            // enviar notificación por correo electrónico
+            const responseEmail = await sendEmailTemplateHtml({
+                to: 'acostaedwin1@gmail.com',
+                subject: 'Nuevo envío creado',
+                templateName: 'shipment-created.ejs',
+                params: {
+                    userId,
+                    weight,
+                    dimensions,
+                    productType,
+                    destination: googleMapsAddress?.formattedAddress,
+                    status: inserted?.currentStatus,
+                    trackingId,
+                },
+            });
+            console.log('responseEmail:', responseEmail);
+
+            return inserted;
         } catch (err) {
             console.log('err:', err?.message);
             throw err;
@@ -72,6 +120,13 @@ class ShipmentsService {
             console.log('err:', err?.message);
             throw err;
         }
+    }
+
+    generateTrackingNumber() {
+        const uuid = uuidv4().replace(/-/g, ''); // NO guiones
+        const shortId = uuid.substring(0, 8).toUpperCase(); // SOLO 8 caracteres
+        return `COORD_${shortId}`;
+        // return shortId;
     }
 }
 

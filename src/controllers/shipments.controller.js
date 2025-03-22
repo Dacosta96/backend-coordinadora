@@ -1,6 +1,5 @@
 const express = require('express');
 
-const { requireAuth } = require('@clerk/express');
 const { validateBody } = require('../utils/middlewares');
 const { createShipmentSchema } = require('../validations/shipments.validation');
 const ShipmentsService = require('../services/shipments.service');
@@ -31,7 +30,25 @@ const service = new ShipmentsService();
  *               productType:
  *                 type: string
  *               destinationAddress:
- *                 type: string
+ *                 type: object
+ *                 properties:
+ *                   regionCode:
+ *                     type: string
+ *                     example: "CO"
+ *                   locality:
+ *                     type: string
+ *                     example: "Cajicá"
+ *                   administrativeArea:
+ *                     type: string
+ *                     example: "Cundinamarca"
+ *                   postalCode:
+ *                     type: string
+ *                     example: "250240"
+ *                   addressLines:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     example: ["Carrera 6 #4-30"]
  *     responses:
  *       201:
  *         description: Envío creado exitosamente

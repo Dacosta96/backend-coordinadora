@@ -32,7 +32,26 @@ const validateBody = (schema) => (req, res, next) => {
     next();
 };
 
-const requireApiAuth = () => requireAuth({ signInUrl: '/api/unauthorized' });
+const requireApiAuth = (allowedRoles) => [
+    requireAuth({ signInUrl: '/api/unauthorized' }),
+    (req, res, next) => {
+        // console.log('allowedRoles:', allowedRoles);
+        if (!allowedRoles) return next(); // No se requiere rol específico
+
+        // console.log('role:', req?.auth?.sessionClaims?.public_metadata?.role);
+        const userRole = req?.auth?.sessionClaims?.public_metadata?.role;
+
+        const rolesArray = Array.isArray(allowedRoles)
+            ? allowedRoles.map((r) => r.toLowerCase())
+            : [allowedRoles.toLowerCase()];
+
+        if (!rolesArray.includes((userRole || '').toLowerCase())) {
+            return res.status(403).json({ message: 'Forbidden: Insufficient role' });
+        }
+
+        next();
+    },
+];
 
 const unauthorizedHandler = (req, res) => {
     res.status(401).json({ message: 'Unauthorized' });
