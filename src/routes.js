@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.use('/users', require('./controllers/users.controller'));
 router.use('/shipments', require('./controllers/shipments.controller'));
+router.use('/history', require('./controllers/history.controller'));
 
 router.get('/public', async (req, res, next) => {
     res.json({ message: 'Hello from public' });

@@ -89,7 +89,7 @@ router.get('/', async (req, res, next) => {
  * @swagger
  * /shipments/{id}:
  *   get:
- *     summary: Obtiene un envío por ID
+ *     summary: Obtiene un envío por ID y user_id (ambos obligatorios)
  *     tags: [Shipments]
  *     parameters:
  *       - in: path
@@ -97,14 +97,35 @@ router.get('/', async (req, res, next) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Detalle del envío
+ *       400:
+ *         description: Faltan parámetros requeridos
  */
 router.get('/:id', async (req, res, next) => {
     try {
         const db = req.app.locals.db;
-        const shipment = await service.findShipmentById(db, Number(req.params.id));
+        const { id } = req.params;
+        // eslint-disable-next-line camelcase
+        const { user_id } = req.query;
+
+        // Validar que ambos parámetros sean proporcionados
+        // eslint-disable-next-line camelcase
+        if (!id || !user_id) {
+            return res.status(400).json({ error: 'id y user_id son obligatorios' });
+        }
+
+        const shipment = await service.findShipment(db, {
+            id: Number(id),
+            userId: Number(user_id),
+        });
+
         res.status(200).json(shipment);
     } catch (err) {
         next(err);

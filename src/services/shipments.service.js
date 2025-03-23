@@ -94,10 +94,22 @@ class ShipmentsService {
         }
     }
 
-    async findShipmentById(db, id) {
+    async findShipment(db, { id, userId }) {
         try {
-            const [rows] = await db.query('SELECT * FROM shipments WHERE id = ?', [id]);
-            return rows[0];
+            let query = 'SELECT * FROM shipments WHERE 1=1';
+            const params = [];
+
+            if (id) {
+                query += ' AND id = ?';
+                params.push(id);
+            }
+            if (userId) {
+                query += ' AND user_id = ?';
+                params.push(userId);
+            }
+
+            const [rows] = await db.query(query, params);
+            return rows;
         } catch (err) {
             console.log('err:', err?.message);
             throw err;
@@ -135,6 +147,16 @@ class ShipmentsService {
             return await this.findShipmentById(db, id);
         } catch (err) {
             console.error('Error updating shipment:', err?.message);
+            throw err;
+        }
+    }
+
+    async findShipmentById(db, id) {
+        try {
+            const [rows] = await db.query('SELECT * FROM shipments WHERE id = ?', [id]);
+            return rows[0];
+        } catch (err) {
+            console.log('err:', err?.message);
             throw err;
         }
     }
