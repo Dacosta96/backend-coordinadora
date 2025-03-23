@@ -113,6 +113,32 @@ router.get('/:id', async (req, res, next) => {
 
 /**
  * @swagger
+ * /shipments/user/{user_id}:
+ *   get:
+ *     summary: Obtiene envíos por user_id
+ *     tags: [Shipments]
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de envíos del usuario
+ */
+router.get('/user/:user_id', async (req, res, next) => {
+    try {
+        const db = req.app.locals.db;
+        const shipments = await service.findShipmentByUserId(db, Number(req.params.user_id));
+        res.status(200).json(shipments);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
  * /shipments/{id}/details:
  *   get:
  *     summary: Obtiene un envío por ID con detalles

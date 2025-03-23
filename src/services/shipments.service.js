@@ -12,24 +12,29 @@ class ShipmentsService {
         try {
             const { userId, weight, dimensions, productType, destinationAddress } = shipmentData;
 
-            // validar si la dirección de destino es válida
+            // Validar la dirección con Google
             const responseAddress = await validateAddress(destinationAddress);
+            console.log('responseAddress:', responseAddress);
 
-            if (!responseAddress?.isValid) {
-                const error = new Error('Invalid destination address');
-                error.status = 400;
-                throw error;
+            if (!responseAddress?.status || !responseAddress?.isValid) {
+                return {
+                    success: false,
+                    statusCode: 400, // Bad Request
+                    message: 'Invalid destination address. Please provide a valid address.',
+                };
             }
 
             const googleMapsAddress = responseAddress?.data?.result?.address || {};
+            console.log('googleMapsAddress:', googleMapsAddress);
 
-            // generar id de envío
+            // Generar ID de envío
             const trackingId = this.generateTrackingNumber();
             console.log('trackingId:', trackingId);
 
+            // Insertar en la base de datos
             const [result] = await db.query(
                 `INSERT INTO shipments (tracking_id, user_id, weight, dimensions, product_type, destination_address, google_map_address)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     trackingId,
                     userId,
@@ -41,11 +46,12 @@ class ShipmentsService {
                 ]
             );
 
+            // Obtener el envío recién insertado
             const inserted = await this.findShipmentById(db, result.insertId);
 
-            // enviar notificación por correo electrónico
+            // Enviar notificación por correo electrónico
             const responseEmail = await sendEmailTemplateHtml({
-                to: 'acostaedwin1@gmail.com',
+                to: 'diego.ac9614@gmail.com',
                 subject: 'Nuevo envío creado',
                 templateName: 'shipment-created.ejs',
                 params: {
@@ -53,17 +59,28 @@ class ShipmentsService {
                     weight,
                     dimensions,
                     productType,
-                    destination: googleMapsAddress?.formattedAddress,
-                    status: inserted?.currentStatus,
+                    destination: googleMapsAddress?.formattedAddress || 'Dirección no disponible',
+                    status: inserted?.currentStatus || 'Pendiente',
                     trackingId,
                 },
             });
+
             console.log('responseEmail:', responseEmail);
 
-            return inserted;
+            return {
+                success: true,
+                statusCode: 201, // Created
+                message: 'Shipment created successfully',
+                shipment: inserted,
+            };
         } catch (err) {
-            console.log('err:', err?.message);
-            throw err;
+            console.error('Error en createShipment:', err.message);
+
+            return {
+                success: false,
+                statusCode: 500,
+                message: 'Internal server error. Please try again later.',
+            };
         }
     }
 
@@ -83,6 +100,16 @@ class ShipmentsService {
             return rows[0];
         } catch (err) {
             console.log('err:', err?.message);
+            throw err;
+        }
+    }
+
+    async findShipmentByUserId(db, userId) {
+        try {
+            const [rows] = await db.query('SELECT * FROM shipments WHERE user_id = ?', [userId]);
+            return rows;
+        } catch (err) {
+            console.log('Error:', err?.message);
             throw err;
         }
     }

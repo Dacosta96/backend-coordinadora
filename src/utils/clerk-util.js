@@ -12,7 +12,6 @@ const createClerkUser = async ({ email, name, role, password }) => {
                 role: role.toUpperCase(),
             },
         });
-        await clerkClient.users.sendEmailInvitation(user.id);
 
         return {
             status: true,

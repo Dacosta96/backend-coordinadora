@@ -18,7 +18,17 @@ class UsersService {
         };
     }
 
-    async findShipmentById(db, id) {
+    async findUserByEmail(db, email) {
+        try {
+            const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+            return rows[0] || null;
+        } catch (err) {
+            console.log('Error al buscar usuario por email:', err?.message);
+            throw err;
+        }
+    }
+
+    async findUserById(db, id) {
         try {
             const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
             return rows[0];
@@ -60,7 +70,7 @@ class UsersService {
                 clerUser.id,
             ]);
 
-            const userSaved = await this.findShipmentById(db, result.insertId);
+            const userSaved = await this.findUserById(db, result.insertId);
 
             return userSaved;
         } catch (err) {

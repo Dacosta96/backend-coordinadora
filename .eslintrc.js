@@ -31,5 +31,6 @@ module.exports = {
         'import/no-extraneous-dependencies': 'off',
         'prefer-destructuring': 'off',
         'consistent-return': 'off',
+        'node/no-unpublished-require': 'off',
     },
 };

@@ -37,6 +37,37 @@ router.get('/ping', async (req, res, next) => {
 
 /**
  * @swagger
+ * /users/email/{email}:
+ *   get:
+ *     summary: Obtiene un usuario por email
+ *     tags: [Usuarios]
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detalle del usuario
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.get('/email/:email', async (req, res, next) => {
+    try {
+        const db = req.app.locals.db;
+        const user = await service.findUserByEmail(db, req.params.email);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+        res.status(200).json(user);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
  * /users/{id}:
  *   get:
  *     summary: Obtiene un usuario por ID

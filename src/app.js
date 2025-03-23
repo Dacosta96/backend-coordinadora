@@ -40,7 +40,6 @@ app.use('/api', require('./routes'));
 // error handlers
 app.get('/api/unauthorized', unauthorizedHandler);
 app.use(errorHandler);
-app.use(errorHandler);
 app.use(notFound);
 
 connectDB().then((db) => {
