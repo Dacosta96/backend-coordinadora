@@ -67,6 +67,49 @@ class HistoryService {
         return `COORD_${shortId}`;
         // return shortId;
     }
+
+    async findMetricsById(db, id) {
+        try {
+            const [rows] = await db.query('SELECT * FROM shipment_metrics WHERE id = ?', [id]);
+            return rows[0];
+        } catch (err) {
+            console.log('err:', err?.message);
+            throw err;
+        }
+    }
+
+    async createMetrics(db, metricsData) {
+        try {
+            // eslint-disable-next-line camelcase
+            const { shipment_id, delivery_time_minutes } = metricsData;
+
+            // Insertar en la base de datos (sin tracking_id)
+            const [result] = await db.query(
+                `INSERT INTO shipment_metrics (shipment_id, delivery_time_minutes) 
+                 VALUES (?, ?)`, // NOW() para la fecha de creación
+                // eslint-disable-next-line camelcase
+                [shipment_id, delivery_time_minutes]
+            );
+
+            // Obtener el historial recién insertado
+            const inserted = await this.findMetricsById(db, result.insertId);
+
+            return {
+                success: true,
+                statusCode: 201, // Created
+                message: 'Metrics created successfully',
+                shipment: inserted,
+            };
+        } catch (err) {
+            console.error('Error en createShipment Metrics:', err.message);
+
+            return {
+                success: false,
+                statusCode: 500,
+                message: 'Internal server error. Please try again later.',
+            };
+        }
+    }
 }
 
 module.exports = HistoryService;

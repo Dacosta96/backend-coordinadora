@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Envío entregado</title>
+    </head>
+
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333">
+        <div
+            style="
+                max-width: 600px;
+                margin: auto;
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                border: 1px solid #ddd;
+            "
+        >
+            <h2>✅ ¡Tu orden de envío ha sido entregada!</h2>
+            <p>Hola,</p>
+            <p>
+                Nos complace informarte que tu orden de envío ha sido entregada con éxito. Esperamos que hayas recibido
+                tu paquete sin inconvenientes.
+            </p>
+
+            <h3>📝 Detalles de la entrega:</h3>
+            <ul>
+                <li>
+                    <strong>ID del Usuario:</strong>
+                    <%=userId%>
+                </li>
+                <li>
+                    <strong>Tipo de Producto:</strong>
+                    <%=productType%>
+                </li>
+                <li>
+                    <strong>Peso:</strong>
+                    <%=weight%> kg
+                </li>
+                <li>
+                    <strong>Dimensiones:</strong>
+                    <%=dimensions%>
+                </li>
+                <li>
+                    <strong>Dirección de Destino:</strong>
+                    <%=destination%>
+                </li>
+                <li>
+                    <strong>Estado Actual:</strong>
+                    <span style="font-weight: bold; color: #28a745">Entregado</span>
+                </li>
+                <li>
+                    <strong>ID de Seguimiento:</strong>
+                    <span style="font-weight: bold; color: #d9534f"> <%=trackingId%> </span>
+                </li>
+            </ul>
+
+            <p>Si tienes alguna duda o inconveniente con la entrega, no dudes en contactarnos.</p>
+
+            <p style="margin-top: 30px">Saludos,<br />Equipo de Coordinadora</p>
+        </div>
+    </body>
+</html>
