@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { validateBody } = require('../utils/middlewares');
+const { validateBody, requireApiAuth } = require('../utils/middlewares');
 const { createShipmentSchema } = require('../validations/shipments.validation');
 const ShipmentsService = require('../services/shipments.service');
 const cacheMiddleware = require('../utils/redis/cache-middleware');
@@ -324,6 +324,7 @@ router.get('/user/:user_id', async (req, res, next) => {
  */
 router.get(
     '/:id/details',
+    requireApiAuth(['USER', 'ADMIN']),
     cacheMiddleware((req) => `shipment-status:${req.params.id}`, 120),
     async (req, res, next) => {
         try {
