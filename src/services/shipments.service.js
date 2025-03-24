@@ -126,16 +126,9 @@ class ShipmentsService {
         }
     }
 
-    async updateShipment(db, id, shipmentData) {
+    async updateShipmentState(db, id, state) {
         try {
-            const { weight, dimensions, productType, destinationAddress, currentStatus } = shipmentData;
-
-            const [result] = await db.query(
-                `UPDATE shipments
-                 SET weight = ?, dimensions = ?, product_type = ?, destination_address = ?, current_status = ?
-                 WHERE id = ?`,
-                [weight, dimensions, productType, destinationAddress, currentStatus, id]
-            );
+            const [result] = await db.query(`UPDATE shipments SET current_status = ? WHERE id = ?`, [state, id]);
 
             if (result.affectedRows === 0) {
                 const error = new Error(`Shipment with ID ${id} not found.`);
@@ -143,10 +136,10 @@ class ShipmentsService {
                 throw error;
             }
 
-            // Return the updated shipment
+            // Retornar el envío actualizado
             return await this.findShipmentById(db, id);
         } catch (err) {
-            console.error('Error updating shipment:', err?.message);
+            console.error('Error updating shipment state:', err?.message);
             throw err;
         }
     }
@@ -226,6 +219,130 @@ class ShipmentsService {
         } catch (err) {
             console.log('err:', err?.message);
             throw err;
+        }
+    }
+
+    async findWaitingShipments(db) {
+        try {
+            const [rows] = await db.query(
+                `
+                SELECT s.*, u.email 
+                FROM shipments s
+                JOIN users u ON user_id = u.id
+                WHERE s.current_status = ?`,
+                ['WAITING']
+            );
+            return camelcaseKeys(rows, { deep: true });
+        } catch (err) {
+            console.log('err:', err?.message);
+            throw err;
+        }
+    }
+
+    async findAllRoutes(db) {
+        try {
+            const [rows] = await db.query('SELECT * FROM routes');
+            return camelcaseKeys(rows, { deep: true });
+        } catch (err) {
+            console.log('err:', err?.message);
+            throw err;
+        }
+    }
+
+    async createAssignment(db, assignmentData) {
+        try {
+            const { shipmentId, routeId } = assignmentData;
+
+            if (!shipmentId || !routeId) {
+                return {
+                    success: false,
+                    statusCode: 400,
+                    message: 'Both shipmentId and routeId are required.',
+                };
+            }
+
+            // Insertar en la base de datos
+            const [result] = await db.query(`INSERT INTO route_assignments (shipment_id, route_id) VALUES (?, ?)`, [
+                shipmentId,
+                routeId,
+            ]);
+
+            return {
+                success: true,
+                statusCode: 201,
+                message: 'Route assignment created successfully',
+                assignment: { id: result.insertId, shipmentId, routeId },
+            };
+        } catch (err) {
+            console.error('Error in createAssignment:', err.message);
+
+            return {
+                success: false,
+                statusCode: 500,
+                message: 'Internal server error. Please try again later.',
+            };
+        }
+    }
+
+    async getShipmentIndicators(db) {
+        try {
+            // Obtener total de registros
+            const [[{ totalShipments }]] = await db.query('SELECT COUNT(*) AS totalShipments FROM shipments');
+
+            // Contar los registros por estado
+            const [statusRows] = await db.query(`
+                SELECT current_status, COUNT(*) AS count
+                FROM shipments
+                GROUP BY current_status
+            `);
+            const statusCounts = statusRows.reduce((acc, row) => {
+                acc[row.current_status] = row.count;
+                return acc;
+            }, {});
+
+            // Sumar el peso total
+            const [[{ totalWeight }]] = await db.query('SELECT COALESCE(SUM(weight), 0) AS totalWeight FROM shipments');
+
+            return {
+                success: true,
+                statusCode: 200,
+                data: {
+                    totalShipments,
+                    statusCounts,
+                    totalWeight,
+                },
+            };
+        } catch (err) {
+            console.error('Error en getShipmentIndicators:', err.message);
+            return {
+                success: false,
+                statusCode: 500,
+                message: 'Internal server error. Please try again later.',
+            };
+        }
+    }
+
+    async getDailyShipmentCounts(db) {
+        try {
+            const [dailyShipments] = await db.query(`
+                SELECT DATE(created_at) AS shipmentDate, COUNT(*) AS totalShipments
+                FROM shipments
+                GROUP BY shipmentDate
+                ORDER BY shipmentDate DESC
+            `);
+
+            return {
+                success: true,
+                statusCode: 200,
+                data: dailyShipments,
+            };
+        } catch (err) {
+            console.error('Error en getDailyShipmentCounts:', err.message);
+            return {
+                success: false,
+                statusCode: 500,
+                message: 'Internal server error. Please try again later.',
+            };
         }
     }
 }
