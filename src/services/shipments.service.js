@@ -49,9 +49,11 @@ class ShipmentsService {
             // Obtener el envío recién insertado
             const inserted = await this.findShipmentById(db, result.insertId);
 
+            const emaulUser = await this.findUserById(db, userId);
+
             // Enviar notificación por correo electrónico
             const responseEmail = await sendEmailTemplateHtml({
-                to: 'diego.ac9614@gmail.com',
+                to: emaulUser.email || '',
                 subject: 'Nuevo envío creado',
                 templateName: 'shipment-created.ejs',
                 params: {
@@ -127,6 +129,7 @@ class ShipmentsService {
     }
 
     async updateShipmentState(db, id, state) {
+        console.log('updateShipmentState:', id, state);
         try {
             const [result] = await db.query(`UPDATE shipments SET current_status = ? WHERE id = ?`, [state, id]);
 
@@ -136,8 +139,32 @@ class ShipmentsService {
                 throw error;
             }
 
-            // Retornar el envío actualizado
-            return await this.findShipmentById(db, id);
+            // Obtener los datos del envío actualizado
+            const updatedShipment = await this.findShipmentById(db, id);
+            // Si el estado es IN_TRANSIT, enviar notificación por correo
+            if (state === 'IN_TRANSIT') {
+                console.log('Enviando correo de notificación de envío en tránsito...');
+                const emailUser = await this.findUserById(db, updatedShipment.user_id);
+
+                const responseEmail = await sendEmailTemplateHtml({
+                    to: emailUser.email || '',
+                    subject: 'Tu envio está en tránsito',
+                    templateName: 'shipment-transit.ejs',
+                    params: {
+                        userId: updatedShipment.userId,
+                        weight: updatedShipment.weight,
+                        dimensions: updatedShipment.dimensions,
+                        productType: updatedShipment.productType,
+                        destination: updatedShipment.google_map_address?.formattedAddress || 'Dirección no disponible',
+                        status: updatedShipment.current_status || 'Pendiente',
+                        trackingId: updatedShipment.tracking_id,
+                    },
+                });
+
+                console.log('Correo enviado:', responseEmail);
+            }
+
+            return updatedShipment;
         } catch (err) {
             console.error('Error updating shipment state:', err?.message);
             throw err;
@@ -179,20 +206,45 @@ class ShipmentsService {
                 error.status = 404;
                 throw error;
             }
-            if (shipment?.current_status === 'IN_TRANSIT') {
+
+            if (shipment.current_status === 'IN_TRANSIT') {
                 await db.query(
                     `UPDATE shipments
                      SET current_status = ?
                      WHERE id = ?`,
                     ['DELIVERED', id]
                 );
-                return await this.findShipmentById(db, id);
+
+                const updatedShipment = await this.findShipmentById(db, id);
+                console.log('updatedShipment:', updatedShipment);
+                // Enviar notificación por correo si estaba en tránsito
+                console.log('Enviando correo de notificación de entrega...');
+                const emailUser = await this.findUserById(db, updatedShipment.user_id);
+
+                const responseEmail = await sendEmailTemplateHtml({
+                    to: emailUser.email || '',
+                    subject: 'Tu envío ha sido entregado',
+                    templateName: 'shipment-delivered.ejs',
+                    params: {
+                        userId: updatedShipment.userId,
+                        weight: updatedShipment.weight,
+                        dimensions: updatedShipment.dimensions,
+                        productType: updatedShipment.productType,
+                        destination: updatedShipment.google_map_address?.formattedAddress || 'Dirección no disponible',
+                        status: updatedShipment.current_status || 'Pendiente',
+                        trackingId: updatedShipment.tracking_id,
+                    },
+                });
+
+                console.log('Correo de entrega enviado:', responseEmail);
+                return updatedShipment;
             }
+
             const error = new Error(`Shipment with ID ${id} is not in transit.`);
             error.status = 400;
             throw error;
         } catch (err) {
-            console.log('err:', err?.message);
+            console.log('Error:', err?.message);
             throw err;
         }
     }
@@ -231,6 +283,23 @@ class ShipmentsService {
                 JOIN users u ON user_id = u.id
                 WHERE s.current_status = ?`,
                 ['WAITING']
+            );
+            return camelcaseKeys(rows, { deep: true });
+        } catch (err) {
+            console.log('err:', err?.message);
+            throw err;
+        }
+    }
+
+    async findInTransitShipments(db) {
+        try {
+            const [rows] = await db.query(
+                `
+                SELECT s.*, u.email 
+                FROM shipments s
+                JOIN users u ON user_id = u.id
+                WHERE s.current_status = ?`,
+                ['IN_TRANSIT']
             );
             return camelcaseKeys(rows, { deep: true });
         } catch (err) {
@@ -343,6 +412,16 @@ class ShipmentsService {
                 statusCode: 500,
                 message: 'Internal server error. Please try again later.',
             };
+        }
+    }
+
+    async findUserById(db, id) {
+        try {
+            const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
+            return rows[0];
+        } catch (err) {
+            console.log('err:', err?.message);
+            throw err;
         }
     }
 }

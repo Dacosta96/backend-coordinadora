@@ -107,6 +107,26 @@ router.get('/waiting', async (req, res, next) => {
 
 /**
  * @swagger
+ * /shipments/in-transit:
+ *   get:
+ *     summary: Lista todos los envíos en estado IN_TRANSIT
+ *     tags: [Shipments]
+ *     responses:
+ *       200:
+ *         description: Lista de envíos en estado IN_TRANSIT
+ */
+router.get('/in-transit', async (req, res, next) => {
+    try {
+        const db = req.app.locals.db;
+        const shipments = await service.findInTransitShipments(db);
+        res.status(200).json(shipments);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
  * /shipments/routes:
  *   get:
  *     summary: Lista todas las rutas
@@ -315,7 +335,31 @@ router.get(
         }
     }
 );
-
+/**
+ * @swagger
+ * /shipments/{id}/mark_delivered:
+ *   put:
+ *     summary: Marca un envío como entregado
+ *     tags: [Shipments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Envío marcado como entregado
+ */
+router.put('/:id/mark_delivered', async (req, res, next) => {
+    try {
+        const db = req.app.locals.db;
+        const shipment = await service.markShipmentAsDelivered(db, Number(req.params.id), 'DELIVERED');
+        res.status(200).json(shipment);
+    } catch (err) {
+        next(err);
+    }
+});
 /**
  * @swagger
  * /shipments/{id}:
@@ -343,6 +387,7 @@ router.get(
  *       404:
  *         description: Envío no encontrado
  */
+
 router.put('/:id', async (req, res, next) => {
     try {
         const { status } = req.body;
@@ -352,32 +397,6 @@ router.put('/:id', async (req, res, next) => {
 
         const db = req.app.locals.db;
         const shipment = await service.updateShipmentState(db, Number(req.params.id), status);
-        res.status(200).json(shipment);
-    } catch (err) {
-        next(err);
-    }
-});
-
-/**
- * @swagger
- * /shipments/{id}/mark_delivered:
- *   put:
- *     summary: Marca un envío como entregado
- *     tags: [Shipments]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Envío marcado como entregado
- */
-router.put('/:id/mark_delivered', async (req, res, next) => {
-    try {
-        const db = req.app.locals.db;
-        const shipment = await service.updateShipmentState(db, Number(req.params.id), 'delivered');
         res.status(200).json(shipment);
     } catch (err) {
         next(err);
