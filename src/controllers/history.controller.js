@@ -3,6 +3,7 @@ const { createHistorySchema } = require('../validations/history.validator');
 const { createMetricsSchema } = require('../validations/metrics.validator');
 const { validateBody } = require('../utils/middlewares');
 const HistoryService = require('../services/history.service');
+const cacheMiddleware = require('../utils/redis/cache-middleware');
 
 const router = express.Router();
 
@@ -18,15 +19,19 @@ const service = new HistoryService();
  *       200:
  *         description: Lista de envíos
  */
-router.get('/', async (req, res, next) => {
-    try {
-        const db = req.app.locals.db;
-        const shipments = await service.findAllHistories(db);
-        res.status(200).json(shipments);
-    } catch (err) {
-        next(err);
+router.get(
+    '/',
+    cacheMiddleware((req) => `find-history`, 5),
+    async (req, res, next) => {
+        try {
+            const db = req.app.locals.db;
+            const shipments = await service.findAllHistories(db);
+            res.status(200).json(shipments);
+        } catch (err) {
+            next(err);
+        }
     }
-});
+);
 
 /**
  * @swagger

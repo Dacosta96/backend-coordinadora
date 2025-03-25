@@ -2,6 +2,7 @@ const express = require('express');
 const UsersService = require('../services/users.service');
 const { validateBody } = require('../utils/middlewares');
 const { createUserSchema } = require('../validations/users.validation');
+const cacheMiddleware = require('../utils/redis/cache-middleware');
 
 const router = express.Router();
 
@@ -53,18 +54,22 @@ router.get('/ping', async (req, res, next) => {
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/email/:email', async (req, res, next) => {
-    try {
-        const db = req.app.locals.db;
-        const user = await service.findUserByEmail(db, req.params.email);
-        if (!user) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
+router.get(
+    '/email/:email',
+    cacheMiddleware((req) => `find-user:${req.params.email}`, 5),
+    async (req, res, next) => {
+        try {
+            const db = req.app.locals.db;
+            const user = await service.findUserByEmail(db, req.params.email);
+            if (!user) {
+                return res.status(404).json({ message: 'Usuario no encontrado' });
+            }
+            res.status(200).json(user);
+        } catch (err) {
+            next(err);
         }
-        res.status(200).json(user);
-    } catch (err) {
-        next(err);
     }
-});
+);
 
 /**
  * @swagger
